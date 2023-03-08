@@ -1,0 +1,263 @@
+*Crear una función o un procedimiento que devuelva el equipo que lleva más goles en el campeonato (5 puntos)
+
+CREATE VIEW VI_EQ_GOL AS
+select PAIS, COUNT(D.CODD) GOLES from detalle d
+inner join sancion sa on sa.codsa=d.codsa
+inner join jugador j on j.id=d.idsa
+inner join seleccion s on s.cods=j.cods
+GROUP BY PAIS , NOMSA
+HAVING nomsa = 'GOL' AND COUNT(D.CODD) =(SELECT MAX(COUNT(D.CODSA)) FROM  detalle d
+inner join sancion sa on sa.codsa=d.codsa inner join jugador j on j.id=d.idsa
+inner join seleccion s on s.cods=j.cods GROUP BY pais,nomsa);
+=================================================================================
+*Crear una función o un procedimiento que devuelva el goleador del campeonato (5 puntos)
+
+CREATE OR REPLACE FUNCTION FU_JUG_GOLEADOR
+RETURN VARCHAR2
+AS
+GOLEADOR VARCHAR2(25);
+GOLES NUMBER;
+BEGIN
+select NOMJ , COUNT(D.CODSA) INTO GOLEADOR, GOLES from detalle d
+inner join sancion sa on sa.codsa=d.codsa
+inner join jugador j on j.id=d.idsa
+GROUP BY NOMJ , NOMSA
+HAVING nomsa = 'GOL' AND COUNT(D.CODSA) =(SELECT MAX(COUNT(D.CODSA)) FROM  detalle d
+inner join sancion sa on sa.codsa=d.codsa inner join jugador j on j.id=d.idsa
+GROUP BY NOMJ,nomsa);
+RETURN GOLEADOR;
+              END;
+
+=================================================================================
+*Crear una función o un procedimiento que devuelva el arquero menos batido
+
+CREATE OR REPLACE FUNCTION FU_ARQ_MENOSBATIDO 
+RETURN VARCHAR2
+AS 
+ARQUERO VARCHAR2(20); 
+GOLES NUMBER; 
+PARTIDO NUMBER; 
+POSICION VARCHAR2(20); 
+BEGIN 
+select NOMJ , P.CODP, nomtc , COUNT(D.CODSA) INTO ARQUERO,PARTIDO,POSICION,GOLES from detalle d 
+inner join sancion sa on sa.codsa=d.codsa 
+inner join jugador j on j.id=d.idAF 
+INNER JOIN CARACTERISTICASJ CJ ON CJ.ID=J.ID 
+INNER JOIN TIPO_CARACTERISTICA TC ON TC.CODTC=CJ.CODTC 
+INNER JOIN PARTIDO P ON P.CODP=D.CODP 
+GROUP BY NOMJ , NOMSA, P.CODP ,nomtc 
+HAVING nomsa = 'GOL'AND NOMTC='Portero' and COUNT(D.CODSA) =(SELECT MIN(COUNT(D.CODSA)) FROM detalle d inner join sancion sa on sa.codsa=d.codsa inner join jugador j on j.id=d.idAF GROUP BY NOMJ,nomsa); RETURN ARQUERO; 
+END;
+
+=============================================================================================
+*Crear una función o un procedimiento que devuelva el jugador (es) con mayor cantidad de tarjetas amarillas 
+
+CREATE OR REPLACE FUNCTION FU_TA_JUGADOR
+RETURN VARCHAR2
+AS
+NOMBRE VARCHAR2(20);
+AMA NUMBER;
+BEGIN
+SELECT NOMJ, COUNT(CODD) INTO NOMBRE, AMA FROM JUGADOR J 
+INNER JOIN DETALLE D ON J.ID=D.IDSA
+INNER JOIN SANCION S ON D.CODSA=S.CODSA
+WHERE UPPER(NOMSA)= 'TARJETA AMARILLA'
+GROUP BY NOMJ
+HAVING COUNT(CODD)=(SELECT MAX(COUNT(CODD)) FROM JUGADOR J INNER JOIN DETALLE D ON J.ID=D.IDSA
+INNER JOIN SANCION S ON D.CODSA=S.CODSA
+WHERE UPPER(NOMSA)= 'TARJETA AMARILLA'
+GROUP BY NOMJ);
+RETURN NOMBRE;
+END;
+
+=============================================================================================
+*Crear una función o un procedimiento que devuelva el jugador (es) con mayor cantidad de tarjetas rojas 
+
+CREATE OR REPLACE FUNCTION FU_TR_JUGADOR
+RETURN VARCHAR2
+AS
+NOMBRE VARCHAR2(20);
+ROJA NUMBER;
+BEGIN
+SELECT NOMJ, COUNT(CODD) INTO NOMBRE, ROJA FROM JUGADOR J 
+INNER JOIN DETALLE D ON J.ID=D.IDSA
+INNER JOIN SANCION S ON D.CODSA=S.CODSA
+WHERE UPPER(NOMSA)= 'TARJETA ROJA'
+GROUP BY NOMJ
+HAVING COUNT(CODD)=(SELECT MAX(COUNT(CODD)) FROM JUGADOR J INNER JOIN DETALLE D ON J.ID=D.IDSA
+INNER JOIN SANCION S ON D.CODSA=S.CODSA
+WHERE UPPER(NOMSA)= 'TARJETA ROJA'
+GROUP BY NOMJ);
+RETURN NOMBRE;
+END;
+
+=============================================================================================
+*Crear una función o un procedimiento que devuelva el equipo más limpio (tarjetas rojas ponderación 2 puntos, amarillas ponderación 1 punto, sumar ponderaciones de cada jugador y ver el equipo que tiene menos puntos) 
+
+CREATE OR REPLACE FUNCTION FU_EQ_LIMPIO RETURN VARCHAR2
+AS
+PAISS VARCHAR2(50);
+PUNTOS NUMBER;
+TARJETA VARCHAR2(50);
+TOTAL NUMBER;
+ROJAS NUMBER;
+AMARILLAS NUMBER;
+BEGIN
+select PAIS , COUNT(D.CODSA) INTO PAISS, PUNTOS from detalle d
+inner join sancion sa on sa.codsa=d.codsa
+inner join jugador j on j.id=d.idSA
+inner join seleccion s on s.cods=j.cods
+GROUP BY PAIS , NOMSA
+HAVING nomsa = 'TARJETA AMARILLA'AND COUNT(D.CODSA) =(SELECT MIN(COUNT(D.CODSA)) FROM  detalle d
+inner join sancion sa on sa.codsa=d.codsa inner join jugador j on j.id=d.idSA
+inner join seleccion s on s.cods=j.cods GROUP BY pais,nomsa);
+RETURN PAISS;
+END;
+INSERT INTO DETALLE VALUES (49,66,10,7,57,NULL)
+SELECT FU_EQ_LIMPIO FROM DUAL;
+
+
+=============================================================================================
+*Crear una función o un procedimiento que devuelva el equipo más goleador 
+
+CREATE OR REPLACE FUNCTION FU_EQ_GOLEADOR
+RETURN VARCHAR2
+IS 
+PAISS VARCHAR2(25);
+GOLES NUMBER;
+BEGIN
+select PAIS, COUNT(D.CODD) INTO PAISS, GOLES from detalle d
+inner join sancion sa on sa.codsa=d.codsa
+inner join jugador j on j.id=d.idsa
+inner join seleccion s on s.cods=j.cods
+GROUP BY PAIS , NOMSA
+HAVING nomsa = 'GOL'AND COUNT(D.CODD) =(SELECT MAX(COUNT(D.CODSA)) FROM  detalle d
+inner join sancion sa on sa.codsa=d.codsa inner join jugador j on j.id=d.idsa
+inner join seleccion s on s.cods=j.cods GROUP BY pais,nomsa);
+RETURN PAISS;
+END;
+
+=============================================================================================
+*Crear una función o un procedimiento que devuelva la cantidad de goles que lleva un jugador (entregar el nombre del jugador como parámetro) 
+
+CREATE OR REPLACE FUNCTION FU_GOL_JUGADOR(N IN VARCHAR2) 
+RETURN NUMBER 
+AS 
+NOMBRE VARCHAR2(20); 
+GOLS NUMBER; 
+BEGIN 
+SELECT NOMJ, COUNT(CODD) INTO NOMBRE, GOLS FROM JUGADOR J 
+INNER JOIN DETALLE D ON J.ID=D.IDSA 
+INNER JOIN SANCION S ON D.CODSA=S.CODSA 
+WHERE UPPER(NOMSA) = 'GOL' AND NOMJ = N GROUP BY NOMJ; 
+RETURN GOLS; 
+END;
+
+=============================================================================================
+*Crear una junción que devuelva la cantidad de partidos minutos que ha jugado un jugador (entregar el nombre del jugador como parámetro) 
+
+CREATE OR REPLACE FUNCTION FU_MIN_JUGADOR(N IN VARCHAR2)
+RETURN NUMBER
+AS
+NOMBRE VARCHAR2(20);
+MINE NUMBER;
+MINS NUMBER;
+BEGIN
+SELECT NOMJ, SUM(MINENT), SUM(MINSAL) INTO NOMBRE, MINE, MINS FROM JUGADOR J
+INNER JOIN CARACTERISTICASJ CJ ON J.ID=CJ.ID
+INNER JOIN ALINEACION A ON CJ.CODCJ=A.CODCJ
+WHERE NOMJ=N
+GROUP BY NOMJ;
+RETURN MINS-MINE;
+END;
+
+=============================================================================================
+*Crear 3 procedimiento almacenados, 1 para insertar, modificar y eliminar datos 
+
+CREATE OR REPLACE PROCEDURE INSERTA_DETALLE(CODD IN NUMBER, MIND NUMBER, CODP NUMBER, CODSA NUMBER, IDSA NUMBER, IDAF NUMBER) 
+AS 
+BEGIN 
+INSERT INTO DETALLE VALUES (CODD,MIND,CODP,CODSA,IDSA,IDAF); 
+END;
+
+CREATE OR REPLACE PROCEDURE INSERTA_PARTIDO(CODP IN NUMBER, CODSL NUMBER, CODSV NUMBER, CODE NUMBER, FECHA DATE, HORA VARCHAR2) 
+AS 
+BEGIN 
+INSERT INTO PARTIDO VALUES(CODP, CODSL,CODSV,CODE,FECHA,HORA); 
+END;
+
+CREATE OR REPLACE PROCEDURE UPDATE_DETALLE(CODDD IN NUMBER, MINDD NUMBER, CODPP NUMBER, CODSAA NUMBER, IDSAA NUMBER, IDAFF NUMBER)
+AS 
+BEGIN 
+UPDATE DETALLE 
+SET MIND = MINDD, CODP = CODPP, CODSA = CODSAA, IDSA= IDSAA, IDAF = IDAFF 
+WHERE CODD = CODDD; 
+END;
+
+CREATE OR REPLACE PROCEDURE UPDATE_PARTIDO(CODPP IN NUMBER, CODSLL NUMBER, CODSVV NUMBER, CODEE NUMBER, FECHAA DATE, HORAA VARCHAR2) 
+AS 
+BEGIN 
+UPDATE PARTIDO SET CODSL = CODSLL, CODSV = CODSVV, CODE = CODEE, FECHA = FECHAA, HORA = HORAA 
+WHERE CODP = CODPP; 
+END;
+
+CREATE OR REPLACE PROCEDURE DELETE_DATOS(DET IN NUMBER)
+AS
+BEGIN
+DELETE FROM DETALLE
+WHERE CODD=DET;
+END;
+
+CREATE OR REPLACE PROCEDURE DELETE_DATOS(PART IN NUMBER)
+AS
+BEGIN
+DELETE FROM PARTIDO
+WHERE CODP=PART;
+END;
+
+=============================================================================================
+*Crear un trigger de auditoria que al modificar el marcador de un partido registre que usuario hizo la modificación, en qué partido, a qué hora realizo la modificación, cuál era el marcador antiguo y cuál es el nuevo marcador, cree la tabla para que se guarden esos datos 
+
+CREATE OR REPLACE TRIGGER TR0_AUD_MARCADOR
+INSTEAD OF INSERT OR UPDATE OR DELETE
+ON VI_MARCADOR 
+FOR EACH ROW
+DECLARE SECUENCIA NUMBER;
+BEGIN
+
+      IF :OLD.MARCADOR <> :NEW.MARCADOR THEN
+         SELECT SEQ_AUDITORIA.NEXTVAL INTO SECUENCIA FROM DUAL;
+         INSERT INTO AUDIT_MAESTRO VALUES (SECUENCIA, 'M', 'VI_MARCADOR', :OLD.PARTIDO, :OLD.MARCADOR, :NEW.MARCADOR, USER, SYSDATE, USERENV('TERMINAL'));
+      IF :OLD.MARCADOR <> :NEW.MARCADOR THEN
+            INSERT INTO AUDIT_DETALLE VALUES (SECUENCIA, 'MARCADOR', :NEW.MARCADOR, :OLD.MARCADOR);
+         END IF;
+      END IF;
+   IF DELETING THEN
+      SELECT SEQ_AUDITORIA.NEXTVAL INTO SECUENCIA FROM DUAL;
+      INSERT INTO AUDIT_MAESTRO VALUES (SECUENCIA, 'B', 'VI_MARCADOR', :OLD.PARTIDO, :OLD.LOCAL ||'-'||:OLD.VISITA, :OLD.MARCADOR, USER, SYSDATE, USERENV('TERMINAL'));
+   END IF;
+END;
+
+==========================================================================================
+*Crear un trigger de auditoria que al eliminar un partido guarde que usuario hizo la modificación, que partido, que equipos jugaban, cuál era el marcador registrado al momento de la eliminación, la hora en que se eliminó el registro. cree una tabla para que se guarden esos datos 
+
+CREATE OR REPLACE TRIGGER TR0_AUD_MARCADOR
+INSTEAD OF INSERT OR UPDATE OR DELETE
+ON VI_MARCADOR 
+FOR EACH ROW
+DECLARE SECUENCIA NUMBER;
+BEGIN
+
+      IF :OLD.MARCADOR <> :NEW.MARCADOR THEN
+         SELECT SEQ_AUDITORIA.NEXTVAL INTO SECUENCIA FROM DUAL;
+         INSERT INTO AUDIT_MAESTRO VALUES (SECUENCIA, 'M', 'VI_MARCADOR', :OLD.PARTIDO, :OLD.MARCADOR, :NEW.MARCADOR, USER, SYSDATE, USERENV('TERMINAL'));
+      IF :OLD.MARCADOR <> :NEW.MARCADOR THEN
+            INSERT INTO AUDIT_DETALLE VALUES (SECUENCIA, 'MARCADOR', :NEW.MARCADOR, :OLD.MARCADOR);
+         END IF;
+      END IF;
+   IF DELETING THEN
+      SELECT SEQ_AUDITORIA.NEXTVAL INTO SECUENCIA FROM DUAL;
+      INSERT INTO AUDIT_MAESTRO VALUES (SECUENCIA, 'B', 'VI_MARCADOR', :OLD.PARTIDO, :OLD.LOCAL ||'-'||:OLD.VISITA, :OLD.MARCADOR, USER, SYSDATE, USERENV('TERMINAL'));
+   END IF;
+END;
+
